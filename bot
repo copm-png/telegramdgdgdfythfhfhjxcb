@@ -1,0 +1,60 @@
+import telebot
+import requests
+import time
+
+# ===== НАСТРОЙКИ (ЗАМЕНИТЬ!) =====
+TOKEN = 'ВАШ_ТОКЕН_ОТ_BOTFATHER'  # Токен от @BotFather
+ALLOWED_USERS = [123456789]  # Ваш Telegram ID
+MAC = 'AA:BB:CC:DD:EE:FF'  # MAC-адрес компьютера
+
+bot = telebot.TeleBot(TOKEN)
+
+
+def send_wake_on_lan():
+    """Отправляет Wake-on-LAN через бесплатный сервис"""
+    # Используем бесплатный API для WoL
+    url = f"https://wakeonlan.herokuapp.com/{MAC.replace(':', '')}"
+    try:
+        response = requests.get(url, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
+
+@bot.message_handler(commands=['start', 'help'])
+def show_help(message):
+    if message.chat.id not in ALLOWED_USERS:
+        bot.reply_to(message, "⛔ Доступ запрещён")
+        return
+
+    bot.reply_to(message, """
+🤖 **Удалённое включение компьютера**
+
+/wake - включить компьютер
+/status - проверить статус бота
+
+**Важно:** Компьютер должен быть настроен на Wake-on-LAN (BIOS + Windows)
+    """, parse_mode='Markdown')
+
+
+@bot.message_handler(commands=['wake'])
+def wake_computer(message):
+    if message.chat.id not in ALLOWED_USERS:
+        bot.reply_to(message, "⛔ Доступ запрещён")
+        return
+
+    bot.reply_to(message, "💻 Отправляю команду на включение...")
+
+    if send_wake_on_lan():
+        bot.reply_to(message, "✅ Команда отправлена! Через 30-60 секунд компьютер должен включиться")
+    else:
+        bot.reply_to(message, "❌ Не удалось отправить команду. Проверь MAC-адрес и интернет")
+
+
+@bot.message_handler(commands=['status'])
+def status(message):
+    bot.reply_to(message, "✅ Бот работает 24/7!")
+
+
+print("🤖 Бот запущен!")
+bot.infinity_polling()
